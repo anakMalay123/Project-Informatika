@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEGO Star Wars UCS Collector Hub</title>
+  <style>
+    :root {
+      --bg-color: #050505;
+      --card-bg: rgba(20, 20, 20, 0.9);
+      --sw-yellow: #FFE81F;
+      --text-main: #f5f5f5;
+      --text-muted: #888;
+      --danger: #ff4444;
+      --success: #00C851;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    
+    body { 
+      background-color: var(--bg-color); 
+      color: var(--text-main);
+      background-image: radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 20px);
+      background-size: 150px 150px;
+      background-attachment: fixed;
+    }
+
+    /* CHROMA RGB ANIMATION */
+    @keyframes chroma {
+      0% { color: #ff0000; text-shadow: 0 0 10px #ff0000; }
+      33% { color: #00ff00; text-shadow: 0 0 10px #00ff00; }
+      66% { color: #0000ff; text-shadow: 0 0 10px #0000ff; }
+      100% { color: #ff0000; text-shadow: 0 0 10px #ff0000; }
+    }
+    .chroma-text { animation: chroma 4s linear infinite; }
+
+    /* NAVBAR */
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 5%; background: rgba(0,0,0,0.95);
+      position: sticky; top: 0; z-index: 1000; border-bottom: 2px solid #222;
+    }
+    .nav-links button {
+      background: none; border: none; color: white; margin-left: 20px;
+      cursor: pointer; font-weight: bold; transition: 0.3s;
+    }
+    .nav-links button:hover { color: var(--sw-yellow); }
+
+    /* LOGIN */
+    #login-screen {
+      position: fixed; inset: 0; background: #000; z-index: 2000;
+      display: flex; justify-content: center; align-items: center;
+    }
+    .login-box {
+      padding: 40px; background: #111; border: 2px solid var(--sw-yellow);
+      border-radius: 15px; text-align: center;
+    }
+
+    /* GRID & CARDS */
+    .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+    
+    .card {
+      background: var(--card-bg); border-radius: 15px; border: 1px solid #333;
+      overflow: hidden; transition: 0.3s; position: relative; cursor: pointer;
+    }
+    .card:hover { transform: translateY(-10px); border-color: var(--sw-yellow); box-shadow: 0 10px 20px rgba(255, 232, 31, 0.15); }
+    
+    .card-img { width: 100%; height: 200px; object-fit: cover; }
+    
+    .card-body { padding: 20px; }
+    .specs-row { 
+      display: flex; justify-content: space-around; 
+      background: #000; padding: 10px; border-radius: 8px; margin: 15px 0;
+      font-size: 0.8rem; color: var(--sw-yellow); border: 1px solid #222;
+    }
+
+    /* MODAL */
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+      display: none; justify-content: center; align-items: center; z-index: 1500;
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: #151515; width: 90%; max-width: 600px; padding: 30px;
+      border-radius: 20px; border: 1px solid #444; position: relative;
+      max-height: 90vh; overflow-y: auto;
+    }
+
+    /* Modal Image Styling */
+    .modal-img-preview {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 15px 0;
+      border: 1px solid var(--sw-yellow);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+
+    .btn-buy {
+      width: 100%; padding: 15px; background: var(--sw-yellow);
+      border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+      margin-top: 20px; transition: 0.3s; text-transform: uppercase;
+    }
+    .btn-buy:hover { background: #e5d017; transform: scale(1.02); box-shadow: 0 0 15px rgba(255, 232, 31, 0.4); }
+
+    /* TOAST SUCCESS */
+    #toast {
+      position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+      background: var(--success); color: white; padding: 15px 40px;
+      border-radius: 50px; font-weight: bold; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 3000;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="login-screen">
+    <div class="login-box">
+      <h1 class="chroma-text" style="margin-bottom: 20px;">SYSTEM ACCESS</h1>
+      <input type="text" placeholder="Username" style="display:block; width:100%; padding:10px; margin-bottom:10px; background:#222; border:none; color:white; border-radius:5px;">
+      <input type="password" placeholder="Password" style="display:block; width:100%; padding:10px; margin-bottom:20px; background:#222; border:none; color:white; border-radius:5px;">
+      <button class="btn-buy" onclick="login()">INITIALIZE HYPERDRIVE</button>
+    </div>
+  </div>
+
+  <nav id="navbar" style="display:none;">
+    <h2 class="chroma-text" onclick="goHome()" style="cursor:pointer;">UCS DATABASE</h2>
+    <div class="nav-links">
+      <button onclick="goHome()">HOME</button>
+      <button onclick="openCart()">CART (<span id="cart-count">0</span>)</button>
+      <button onclick="logout()" style="color:var(--danger)">LOGOUT</button>
+    </div>
+  </nav>
+
+  <div id="main-app" class="container" style="display:none;">
+    <div class="grid" id="product-grid"></div>
+  </div>
+
+  <div id="detail-modal" class="modal">
+    <div class="modal-content">
+      <span style="position:absolute; top:20px; right:20px; cursor:pointer; font-size:24px; color:#888; transition:0.3s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'" onclick="closeModal()">&times;</span>
+      
+      <h2 id="m-title" class="chroma-text" style="margin-right: 30px;"></h2>
+      
+      <img id="m-img" src="" alt="Product Preview" class="modal-img-preview">
+      
+      <div id="m-specs-fixed" class="specs-row"></div> 
+      
+      <div style="margin-top:20px; background:#111; padding:15px; border-radius:8px; border:1px solid #333;">
+        <h4 style="color:var(--success); margin-bottom:5px;">✓ Kelebihan:</h4>
+        <p id="m-pros" style="font-size:0.9rem; margin-bottom:15px; color:#ccc; line-height:1.4;"></p>
+        <h4 style="color:var(--danger); margin-bottom:5px;">✗ Kekurangan:</h4>
+        <p id="m-cons" style="font-size:0.9rem; color:#ccc; line-height:1.4;"></p>
+      </div>
+      
+      <button class="btn-buy" id="m-buy-btn">BUY NOW - $<span id="m-price"></span></button>
+    </div>
+  </div>
+
+  <div id="cart-modal" class="modal">
+    <div class="modal-content" style="max-width:400px;">
+      <span style="position:absolute; top:20px; right:20px; cursor:pointer; font-size:24px; color:#888;" onclick="closeModal()">&times;</span>
+      <h2 style="color:var(--sw-yellow); margin-bottom:20px;">Your Hangar</h2>
+      
+      <div id="cart-items" style="max-height: 250px; overflow-y: auto; padding-right: 10px;"></div>
+      
+      <hr style="margin:20px 0; border:0; border-top:1px solid #333;">
+      <h3 style="display:flex; justify-content:space-between;">Total: <span style="color:var(--sw-yellow)">$<span id="total-price">0</span></span></h3>
+      
+      <button class="btn-buy" onclick="processCheckout()">CHECKOUT NOW</button>
+      <button onclick="closeModal()" style="background:none; border:none; color:#888; width:100%; margin-top:15px; cursor:pointer; transition:0.3s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">Lanjutkan Belanja</button>
+    </div>
+  </div>
+
+  <div id="toast">✅ PESANAN DITERIMA! Menuju lokasi Anda via Hyperspace...</div>
+
+  <script>
+    const legoSets = [
+      {
+        id: 1, name: "Millennium Falcon", price: 849.99, year: 2017, pieces: 7541, minifigs: 8,
+        img: "https://i5.walmartimages.com/seo/LEGO-Star-Wars-Ultimate-Millennium-Falcon-75192-Expert-Building-Set-and-Starship-Model-Kit-Movie-Collectible-Featuring-Han-Solo-s-Iconic-Ship_2264a1df-4e89-49f5-ad34-c5729bc2184a.c9c1e25bd2c2a6f2c04582b9ca954f6e.jpeg",
+        pros: "Detail interior sangat lengkap, ukuran masif, koleksi paling legendaris.",
+        cons: "Sangat berat (13kg+), butuh rak pajangan yang sangat luas."
+      },
+      {
+        id: 2, name: "AT-AT", price: 849.99, year: 2021, pieces: 6785, minifigs: 9,
+        img: "https://www.lego.com/cdn/cs/set/assets/blta7b7b825b6d4fc0a/75313_Prod.png?fit=crop&quality=80&width=800&height=800&dpr=1",
+        pros: "Kaki bisa digerakkan, muat banyak tentara di dalam, skala akurat.",
+        cons: "Merakit kaki cukup membosankan karena berulang-ulang."
+      },
+      {
+        id: 3, name: "Venator Cruiser", price: 649.99, year: 2023, pieces: 5374, minifigs: 2,
+        img: "https://www.lego.com/cdn/cs/set/assets/blt06c6593d8e8d1c13/75367.png",
+        pros: "Warna merah yang elegan, panjang lebih dari 1 meter, minifig Rex eksklusif.",
+        cons: "Tidak ada detail interior ruang kemudi."
+      },
+      {
+        id: 4, name: "Slave I", price: 199.99, year: 2015, pieces: 1996, minifigs: 4,
+        img: "https://www.lego.com/cdn/cs/set/assets/blt616e72cc7801d6d0/75409_Prod.png",
+        pros: "Desain aerodinamis sangat mulus, stand display posisi terbang sangat ikonik.",
+        cons: "Harga pasar saat ini sudah naik drastis (Retired)."
+      },
+      {
+        id: 5, name: "Super Star Destroyer", price: 399.99, year: 2011, pieces: 3152, minifigs: 5,
+        img: "https://images.brickset.com/sets/images/10221-1.jpg",
+        pros: "Sangat panjang, memberikan kesan intimidasi yang kuat di rak buku.",
+        cons: "Detail permukaan (greebling) agak ringkih dan mudah lepas."
+      }
+    ];
+
+    let cart = [];
+
+    function login() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('navbar').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'block';
+      renderCards();
+    }
+
+    function logout() { location.reload(); }
+    function goHome() { closeModal(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    function renderCards() {
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = legoSets.map(set => `
+        <div class="card" onclick="openDetail(${set.id})">
+          <img src="${set.img}" class="card-img" alt="${set.name}">
+          <div class="card-body">
+            <h3 class="chroma-text" style="font-size:1.4rem;">${set.name}</h3>
+            <div class="specs-row">
+              <span>🧩 ${set.pieces}</span>
+              <span>🧍 ${set.minifigs}</span>
+              <span>📅 ${set.year}</span>
+            </div>
+            <p style="text-align:right; font-weight:bold; color:var(--sw-yellow); font-size:1.2rem;">$${set.price}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openDetail(id) {
+      const set = legoSets.find(s => s.id === id);
+      
+      // Update data di modal
+      document.getElementById('m-title').innerText = set.name;
+      document.getElementById('m-img').src = set.img; // Menampilkan gambar di pop-up
+      document.getElementById('m-price').innerText = set.price;
+      document.getElementById('m-pros').innerText = set.pros;
+      document.getElementById('m-cons').innerText = set.cons;
+      
+      document.getElementById('m-specs-fixed').innerHTML = `
+        <span>🧩 ${set.pieces} Pieces</span>
+        <span>🧍 ${set.minifigs} Figs</span>
+        <span>📅 ${set.year}</span>
+      `;
+      
+      document.getElementById('m-buy-btn').onclick = () => addToCart(id);
+      document.getElementById('detail-modal').style.display = 'flex';
+    }
+
+    function addToCart(id) {
+      const set = legoSets.find(s => s.id === id);
+      const item = cart.find(i => i.id === id);
+      if(item) item.qty++;
+      else cart.push({...set, qty: 1});
+      
+      updateCartUI();
+      closeModal();
+      openCart();
+    }
+
+    function updateCartUI() {
+      // Hitung jumlah item
+      document.getElementById('cart-count').innerText = cart.reduce((a,b) => a + b.qty, 0);
+      
+      // Render isi keranjang
+      document.getElementById('cart-items').innerHTML = cart.length === 0 
+        ? '<p style="text-align:center; color:#888;">Hangar kosong. Tambahkan sesuatu!</p>' 
+        : cart.map(item => `
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #222; padding-bottom:10px;">
+          <span style="color:#eee">${item.name} <span style="color:var(--sw-yellow)">(x${item.qty})</span></span>
+          <span style="font-weight:bold">$${(item.price * item.qty).toFixed(2)}</span>
+        </div>
+      `).join('');
+      
+      // Hitung total harga
+      let total = 0;
+      cart.forEach(i => total += (i.price * i.qty));
+      document.getElementById('total-price').innerText = total.toFixed(2);
+    }
+
+    function openCart() { 
+      updateCartUI(); // Update UI sebelum membuka keranjang
+      document.getElementById('cart-modal').style.display = 'flex'; 
+    }
+    
+    function closeModal() { 
+      document.getElementById('detail-modal').style.display = 'none'; 
+      document.getElementById('cart-modal').style.display = 'none'; 
+    }
+
+    function processCheckout() {
+      if(cart.length === 0) return alert("Pilih LEGO terlebih dahulu, Commander!");
+      closeModal();
+      const toast = document.getElementById('toast');
+      toast.style.bottom = '30px';
+      
+      // Kosongkan keranjang setelah beli
+      cart = [];
+      updateCartUI();
+      
+      // Hilangkan notifikasi setelah 4 detik
+      setTimeout(() => { toast.style.bottom = '-100px'; }, 4000);
+    }
+  </script>
+</body>
+</html>
